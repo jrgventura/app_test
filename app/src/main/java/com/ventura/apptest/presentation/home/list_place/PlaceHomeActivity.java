@@ -113,7 +113,7 @@ public class PlaceHomeActivity extends AppCompatActivity {
             public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
                 List<Place> place = queryDocumentSnapshots.toObjects(Place.class);
                 Log.v("LISTA_LISTA", place.size()+"");
-                
+
 
             }
         });
