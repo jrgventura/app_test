@@ -1,8 +1,14 @@
 package com.ventura.apptest.presentation.home.list_place;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -15,39 +21,35 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.firebase.ui.firestore.FirestoreRecyclerAdapter;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.ventura.apptest.AppTestApplication;
+import com.ventura.apptest.LocationUpdateService;
 import com.ventura.apptest.R;
 import com.ventura.apptest.data.DaoSession;
-import com.ventura.apptest.data.User;
 import com.ventura.apptest.presentation.home.entities.Place;
 import com.ventura.apptest.presentation.home.register_place.PlaceRegisterActivity;
 
 import java.util.List;
 
-public class PlaceHomeActivity extends AppCompatActivity {
+public class PlaceHomeActivity extends AppCompatActivity{
 
     private RecyclerView recyclerPlaces;
+    private static final int REQUEST_PERMISSIONS = 100;
 
-    private FirebaseAuth mAuth;
     private FirebaseFirestore dbFirestore;
     private FirestoreRecyclerAdapter adapter;
 
     LinearLayoutManager linearLayoutManager;
-
-
-    private String currentUserID;
-
     DaoSession daoSession;
 
     @Override
@@ -57,38 +59,29 @@ public class PlaceHomeActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        mAuth = FirebaseAuth.getInstance();
         dbFirestore = FirebaseFirestore.getInstance();
-        currentUserID = mAuth.getCurrentUser().getUid();
-
         daoSession = ((AppTestApplication)getApplication()).getDaoSession();
-
 
         recyclerPlaces = (RecyclerView) findViewById(R.id.recyclerPlaces);
         recyclerPlaces.setHasFixedSize(true);
-
         linearLayoutManager = new LinearLayoutManager(this);
         linearLayoutManager.setReverseLayout(true);
         linearLayoutManager.setStackFromEnd(true);
         recyclerPlaces.setLayoutManager(linearLayoutManager);
 
+
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
                 Intent registerIntent = new Intent(PlaceHomeActivity.this, PlaceRegisterActivity.class);
                 startActivity(registerIntent);
-
             }
         });
 
-        User user = ((AppTestApplication)getApplication()).getDaoSession().getUserDao().load(1L);
-        if(user != null){
-            Log.v("GRENDAO_DEMO", user.getName());
-        }
-
         setData();
+
+
     }
 
     @Override
@@ -179,4 +172,58 @@ public class PlaceHomeActivity extends AppCompatActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
+
+    private void fn_permission() {
+        if ((ContextCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)) {
+
+            if ((ActivityCompat.shouldShowRequestPermissionRationale(PlaceHomeActivity.this, android.Manifest.permission.ACCESS_FINE_LOCATION))) {
+
+            } else {
+                ActivityCompat.requestPermissions(PlaceHomeActivity.this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_PERMISSIONS);
+
+            }
+        }
+    }
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        registerReceiver(broadcastReceiver, new IntentFilter(LocationUpdateService.str_receiver));
+        fn_permission();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        switch (requestCode) {
+            case REQUEST_PERMISSIONS: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    Intent intent = new Intent(getApplicationContext(), LocationUpdateService.class);
+                    startService(intent);
+
+                } else {
+                    Toast.makeText(getApplicationContext(), "Please allow the permission", Toast.LENGTH_LONG).show();
+
+                }
+            }
+        }
+    }
+
+    private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            Double latitude = Double.valueOf(intent.getStringExtra("latutide"));
+            Double longitude = Double.valueOf(intent.getStringExtra("longitude"));
+            Log.v("LOCATION_UPDATE", latitude+"");
+            Log.v("LOCATION_UPDATE", longitude+"");
+
+        }
+    };
+
+
 }

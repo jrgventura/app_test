@@ -45,7 +45,7 @@ public class SigninActivity extends AppCompatActivity implements SigninInterface
 
         loadingBar = new ProgressDialog(this);
         loadingBar.setTitle("Login");
-        loadingBar.setMessage("Please wait, while we are allowing you to login into your Account...");
+        loadingBar.setMessage("Please wait ...");
         loadingBar.setCanceledOnTouchOutside(true);
 
         setEvent();
@@ -67,12 +67,21 @@ public class SigninActivity extends AppCompatActivity implements SigninInterface
     }
 
 
+    public String validate(String userName, String password)
+    {
+        if(userName.equals("user") && password.equals("user"))
+            return "Login was successful";
+        else
+            return "Invalid login!";
+    }
+
+
     @Override
     public void onClick(View view) {
         switch (view.getId()){
 
             case R.id.btnLogin:
-                setLogin();
+                setLogin(edtemail.getText().toString().trim(), edtPassword.getText().toString().trim());
                 break;
 
             case R.id.btnRegister:
@@ -85,9 +94,7 @@ public class SigninActivity extends AppCompatActivity implements SigninInterface
         }
     }
 
-    private void setLogin(){
-        final String email = edtemail.getText().toString().trim();
-        final String password = edtPassword.getText().toString().trim();
+    public void setLogin(String email, String password){
         if(presenter.isValidForm(email, password)) {
             presenter.attemptSignin(email, password);
         }
